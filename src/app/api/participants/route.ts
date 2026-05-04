@@ -3,11 +3,21 @@ import { getDb, initDb } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
+    const gameFilter = url.searchParams.get('game');
+    
     await initDb(); // Ensure table exists
     const sql = getDb();
-    const participants = await sql`SELECT * FROM participants ORDER BY score DESC, created_at ASC`;
+    
+    let participants;
+    if (gameFilter) {
+      participants = await sql`SELECT * FROM participants WHERE game = ${gameFilter} ORDER BY score DESC, created_at ASC`;
+    } else {
+      participants = await sql`SELECT * FROM participants ORDER BY score DESC, created_at ASC`;
+    }
+    
     return NextResponse.json(participants.rows || participants);
   } catch (error) {
     console.error('Error fetching participants:', error);
@@ -22,9 +32,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, phone, score } = await request.json();
+    const { name, phone, score, game } = await request.json();
 
-    if (!name || !phone || score === undefined) {
+    if (!name || !phone || score === undefined || !game) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -33,8 +43,8 @@ export async function POST(request: Request) {
 
     const sql = getDb();
     const result = await sql`
-      INSERT INTO participants (name, phone, score) 
-      VALUES (${name}, ${phone}, ${parsedScore})
+      INSERT INTO participants (name, phone, score, game) 
+      VALUES (${name}, ${phone}, ${parsedScore}, ${game})
       RETURNING *
     `;
 

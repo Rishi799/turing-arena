@@ -11,6 +11,7 @@ interface Participant {
   name: string;
   phone: string;
   score: number;
+  game?: string;
   created_at: string;
 }
 
@@ -19,6 +20,7 @@ type TabView = 'leaderboard' | 'manage';
 export default function Home() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [activeTab, setActiveTab] = useState<TabView>('leaderboard');
+  const [leaderboardGame, setLeaderboardGame] = useState<'pong' | 'boxing'>('pong');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingParticipant, setEditingParticipant] = useState<Participant | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
@@ -37,6 +39,7 @@ export default function Home() {
   const [formName, setFormName] = useState('');
   const [formPhone, setFormPhone] = useState('');
   const [formScore, setFormScore] = useState('');
+  const [formGame, setFormGame] = useState<'pong' | 'boxing'>('pong');
 
   const showToast = useCallback((message: string, type: 'success' | 'error') => {
     setToast({ message, type });
@@ -122,6 +125,7 @@ export default function Home() {
           name: formName.trim(),
           phone: formPhone.trim(),
           score: parseInt(formScore, 10),
+          game: formGame,
         }),
       });
 
@@ -154,6 +158,7 @@ export default function Home() {
           name: formName.trim(),
           phone: formPhone.trim(),
           score: parseInt(formScore, 10),
+          game: formGame,
         }),
       });
 
@@ -189,6 +194,7 @@ export default function Home() {
     setFormName('');
     setFormPhone('');
     setFormScore('');
+    setFormGame('pong');
   };
 
   const openEditModal = (p: Participant) => {
@@ -196,6 +202,7 @@ export default function Home() {
     setFormName(p.name);
     setFormPhone(p.phone);
     setFormScore(p.score.toString());
+    setFormGame((p.game as 'pong' | 'boxing') || 'pong');
   };
 
   const closeModal = () => {
@@ -225,10 +232,14 @@ export default function Home() {
     return '';
   };
 
-  const totalPlayers = participants.length;
-  const highestScore = participants.length > 0 ? participants[0]?.score : 0;
-  const avgScore = participants.length > 0
-    ? Math.round(participants.reduce((s, p) => s + p.score, 0) / participants.length)
+  const gameParticipants = participants
+    .filter(p => (p.game || 'pong') === leaderboardGame)
+    .sort((a, b) => b.score - a.score); // ensure correct order on client
+
+  const totalPlayers = gameParticipants.length;
+  const highestScore = gameParticipants.length > 0 ? gameParticipants[0]?.score : 0;
+  const avgScore = gameParticipants.length > 0
+    ? Math.round(gameParticipants.reduce((s, p) => s + p.score, 0) / gameParticipants.length)
     : 0;
 
   return (
@@ -310,13 +321,29 @@ export default function Home() {
         {/* ═══ LEADERBOARD TAB ═══ */}
         {activeTab === 'leaderboard' && (
           <div className="card-glow p-0 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-5" style={{ borderBottom: '1px solid var(--border-color)' }}>
-              <h2 className="font-arcade text-lg font-bold flex items-center gap-2" style={{ color: 'var(--accent-gold)' }}>
-                <Trophy className="w-5 h-5" />
-                Live Leaderboard
-              </h2>
-              <button className="btn-neon btn-neon-cyan flex items-center gap-2" onClick={fetchParticipants}>
-                <RefreshCw className="w-4 h-4" /> Refresh
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 py-5 gap-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+              <div className="flex items-center gap-4">
+                <h2 className="font-arcade text-lg font-bold flex items-center gap-2" style={{ color: 'var(--accent-gold)' }}>
+                  <Trophy className="w-5 h-5" />
+                  Live Leaderboard
+                </h2>
+                <div className="flex items-center gap-1 bg-black/40 p-1 rounded-lg border border-white/5">
+                  <button 
+                    className={`px-3 py-1 text-xs font-arcade rounded transition-all ${leaderboardGame === 'pong' ? 'bg-[var(--accent-cyan)] text-black shadow-[0_0_10px_var(--accent-cyan)]' : 'text-white/60 hover:text-white'}`}
+                    onClick={() => setLeaderboardGame('pong')}
+                  >
+                    PONG
+                  </button>
+                  <button 
+                    className={`px-3 py-1 text-xs font-arcade rounded transition-all ${leaderboardGame === 'boxing' ? 'bg-[var(--accent-purple)] text-black shadow-[0_0_10px_var(--accent-purple)]' : 'text-white/60 hover:text-white'}`}
+                    onClick={() => setLeaderboardGame('boxing')}
+                  >
+                    BOXING
+                  </button>
+                </div>
+              </div>
+              <button className="btn-neon btn-neon-cyan flex items-center gap-2 text-xs py-1.5 px-3" onClick={fetchParticipants}>
+                <RefreshCw className="w-3.5 h-3.5" /> Refresh
               </button>
             </div>
 
@@ -325,10 +352,10 @@ export default function Home() {
                 <RefreshCw className="w-8 h-8 mx-auto mb-4 animate-spin" style={{ color: 'var(--accent-cyan)' }} />
                 <p>Loading scores...</p>
               </div>
-            ) : participants.length === 0 ? (
+            ) : gameParticipants.length === 0 ? (
               <div className="empty-state">
                 <Gamepad2 className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--text-muted)', opacity: 0.4 }} />
-                <p className="text-lg mb-1">No players yet</p>
+                <p className="text-lg mb-1">No players for {leaderboardGame.toUpperCase()} yet</p>
                 <p className="text-sm" style={{ color: 'var(--text-muted)' }}>
                   Add participants from the Manage Players tab
                 </p>
@@ -337,14 +364,13 @@ export default function Home() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
-                    <th className="table-header" style={{ width: '12%', textAlign: 'center' }}>Rank</th>
-                    <th className="table-header" style={{ width: '38%', textAlign: 'left' }}>Player</th>
-                    <th className="table-header" style={{ width: '28%', textAlign: 'left' }}>Phone</th>
-                    <th className="table-header" style={{ width: '22%', textAlign: 'right' }}>Score</th>
+                    <th className="table-header" style={{ width: '15%', textAlign: 'center' }}>Rank</th>
+                    <th className="table-header" style={{ width: '60%', textAlign: 'left' }}>Player</th>
+                    <th className="table-header" style={{ width: '25%', textAlign: 'right' }}>Score</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {participants.map((p, idx) => {
+                  {gameParticipants.map((p, idx) => {
                     const rank = idx + 1;
                     return (
                       <tr
@@ -364,12 +390,6 @@ export default function Home() {
                           <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                             <User className="w-4 h-4" style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                             {p.name}
-                          </span>
-                        </td>
-                        <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontSize: 14, borderBottom: '1px solid rgba(0, 240, 255, 0.05)' }}>
-                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                            <Phone className="w-3.5 h-3.5" style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                            {p.phone}
                           </span>
                         </td>
                         <td style={{ padding: '16px 20px', textAlign: 'right', borderBottom: '1px solid rgba(0, 240, 255, 0.05)' }}>
@@ -495,10 +515,11 @@ export default function Home() {
                   <thead>
                     <tr style={{ background: 'rgba(0,0,0,0.2)' }}>
                       <th className="table-header" style={{ width: '8%', textAlign: 'center' }}>#</th>
-                      <th className="table-header" style={{ width: '25%', textAlign: 'left' }}>Name</th>
-                      <th className="table-header" style={{ width: '25%', textAlign: 'left' }}>Phone</th>
+                      <th className="table-header" style={{ width: '20%', textAlign: 'left' }}>Name</th>
+                      <th className="table-header" style={{ width: '20%', textAlign: 'left' }}>Phone</th>
+                      <th className="table-header" style={{ width: '12%', textAlign: 'left' }}>Game</th>
                       <th className="table-header" style={{ width: '15%', textAlign: 'left' }}>Score</th>
-                      <th className="table-header" style={{ width: '12%', textAlign: 'left' }}>Time</th>
+                      <th className="table-header" style={{ width: '10%', textAlign: 'left' }}>Time</th>
                       <th className="table-header" style={{ width: '15%', textAlign: 'center' }}>Actions</th>
                     </tr>
                   </thead>
@@ -513,6 +534,11 @@ export default function Home() {
                         </td>
                         <td style={{ padding: '14px 20px', fontSize: 14, color: 'var(--text-secondary)', borderBottom: '1px solid rgba(0, 240, 255, 0.05)' }}>
                           {p.phone}
+                        </td>
+                        <td style={{ padding: '14px 20px', fontSize: 12, borderBottom: '1px solid rgba(0, 240, 255, 0.05)' }}>
+                          <span className="font-arcade uppercase" style={{ color: (p.game || 'pong') === 'pong' ? 'var(--accent-cyan)' : 'var(--accent-purple)' }}>
+                            {p.game || 'pong'}
+                          </span>
                         </td>
                         <td style={{ padding: '14px 20px', borderBottom: '1px solid rgba(0, 240, 255, 0.05)' }}>
                           <span className="font-arcade" style={{ fontSize: 14, fontWeight: 700, color: 'var(--accent-cyan)' }}>
@@ -622,6 +648,22 @@ export default function Home() {
                   />
                 </div>
               </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                  Game
+                </label>
+                <div className="relative">
+                  <Gamepad2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                  <select
+                    className="input-arcade pl-10 appearance-none bg-black/50"
+                    value={formGame}
+                    onChange={(e) => setFormGame(e.target.value as 'pong' | 'boxing')}
+                  >
+                    <option value="pong">Pong</option>
+                    <option value="boxing">Boxing</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-3 mt-8">
@@ -688,6 +730,22 @@ export default function Home() {
                     value={formScore}
                     onChange={(e) => setFormScore(e.target.value)}
                   />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--text-muted)' }}>
+                  Game
+                </label>
+                <div className="relative">
+                  <Gamepad2 className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: 'var(--text-muted)' }} />
+                  <select
+                    className="input-arcade pl-10 appearance-none bg-black/50"
+                    value={formGame}
+                    onChange={(e) => setFormGame(e.target.value as 'pong' | 'boxing')}
+                  >
+                    <option value="pong">Pong</option>
+                    <option value="boxing">Boxing</option>
+                  </select>
                 </div>
               </div>
             </div>

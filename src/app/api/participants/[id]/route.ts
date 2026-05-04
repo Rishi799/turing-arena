@@ -9,9 +9,9 @@ export async function PUT(request: Request, ctx: RouteContext<'/api/participants
     }
 
     const { id } = await ctx.params;
-    const { name, phone, score } = await request.json();
+    const { name, phone, score, game } = await request.json();
 
-    if (!name || !phone || score === undefined) {
+    if (!name || !phone || score === undefined || !game) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
@@ -21,7 +21,7 @@ export async function PUT(request: Request, ctx: RouteContext<'/api/participants
     const sql = getDb();
     const result = await sql`
       UPDATE participants 
-      SET name = ${name}, phone = ${phone}, score = ${parsedScore} 
+      SET name = ${name}, phone = ${phone}, score = ${parsedScore}, game = ${game}
       WHERE id = ${id}
       RETURNING *
     `;

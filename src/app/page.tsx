@@ -47,8 +47,9 @@ export default function Home() {
     try {
       setLoading(true);
       const res = await fetch('/api/participants');
+      if (!res.ok) throw new Error('Failed to fetch');
       const data = await res.json();
-      setParticipants(data);
+      setParticipants(Array.isArray(data) ? data : []);
     } catch {
       showToast('Failed to load participants', 'error');
     } finally {

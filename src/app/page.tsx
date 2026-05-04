@@ -125,14 +125,18 @@ export default function Home() {
         }),
       });
 
-      if (!res.ok) throw new Error('Failed');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to add participant');
+      }
 
       showToast(`${formName} added successfully!`, 'success');
       setShowAddModal(false);
       resetForm();
       fetchParticipants();
-    } catch {
-      showToast('Failed to add participant', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to add participant', 'error');
     }
   };
 
@@ -153,14 +157,18 @@ export default function Home() {
         }),
       });
 
-      if (!res.ok) throw new Error('Failed');
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update participant');
+      }
 
       showToast(`${formName} updated successfully!`, 'success');
       setEditingParticipant(null);
       resetForm();
       fetchParticipants();
-    } catch {
-      showToast('Failed to update participant', 'error');
+    } catch (error: any) {
+      showToast(error.message || 'Failed to update participant', 'error');
     }
   };
 

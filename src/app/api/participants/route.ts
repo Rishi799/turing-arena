@@ -36,8 +36,8 @@ export async function POST(request: Request) {
     `;
 
     return NextResponse.json(result[0], { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error adding participant:', error);
-    return NextResponse.json({ error: 'Failed to add participant' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to add participant' }, { status: 500 });
   }
 }

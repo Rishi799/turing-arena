@@ -38,9 +38,7 @@ export async function POST(request: Request) {
       RETURNING *
     `;
 
-    // @vercel/postgres returns { rows, rowCount, fields, command }
-    const insertedRow = result.rows ? result.rows[0] : result[0];
-    return NextResponse.json(insertedRow, { status: 201 });
+    return NextResponse.json(result.rows[0], { status: 201 });
   } catch (error: any) {
     console.error('Error adding participant:', error);
     return NextResponse.json({ error: error.message || 'Failed to add participant' }, { status: 500 });

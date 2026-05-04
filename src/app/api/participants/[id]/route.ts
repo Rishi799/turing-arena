@@ -26,7 +26,7 @@ export async function PUT(request: Request, ctx: RouteContext<'/api/participants
       RETURNING *
     `;
 
-    const rows = result.rows || result;
+    const rows = result.rows;
     if (rows.length === 0) {
       return NextResponse.json({ error: 'Participant not found' }, { status: 404 });
     }

@@ -1,15 +1,13 @@
-import { neon } from '@neondatabase/serverless';
+import { sql } from '@vercel/postgres';
 
 export function getDb() {
-  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
-  if (!url) {
-    throw new Error('DATABASE_URL or POSTGRES_URL environment variable is not set. Please link a Vercel Postgres database.');
+  if (!process.env.DATABASE_URL && !process.env.POSTGRES_URL) {
+    console.warn('DATABASE_URL or POSTGRES_URL environment variable is not set. Please link a Vercel Postgres database.');
   }
-  return neon(url);
+  return sql;
 }
 
 export async function initDb() {
-  const sql = getDb();
   await sql`
     CREATE TABLE IF NOT EXISTS participants (
       id SERIAL PRIMARY KEY,

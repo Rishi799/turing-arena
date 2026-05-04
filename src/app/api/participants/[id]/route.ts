@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
+import { getDb, initDb } from '@/lib/db';
 
 export async function PUT(request: Request, ctx: RouteContext<'/api/participants/[id]'>) {
   try {
@@ -15,19 +15,23 @@ export async function PUT(request: Request, ctx: RouteContext<'/api/participants
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
+    await initDb();
+    const parsedScore = Number(score);
+
     const sql = getDb();
     const result = await sql`
       UPDATE participants 
-      SET name = ${name}, phone = ${phone}, score = ${parseInt(score, 10)} 
+      SET name = ${name}, phone = ${phone}, score = ${parsedScore} 
       WHERE id = ${id}
       RETURNING *
     `;
 
-    if (result.length === 0) {
+    const rows = result.rows || result;
+    if (rows.length === 0) {
       return NextResponse.json({ error: 'Participant not found' }, { status: 404 });
     }
 
-    return NextResponse.json(result[0]);
+    return NextResponse.json(rows[0]);
   } catch (error) {
     console.error('Error updating participant:', error);
     return NextResponse.json({ error: 'Failed to update participant' }, { status: 500 });
@@ -42,6 +46,7 @@ export async function DELETE(request: Request, ctx: RouteContext<'/api/participa
     }
 
     const { id } = await ctx.params;
+    await initDb();
     const sql = getDb();
     await sql`DELETE FROM participants WHERE id = ${id}`;
 
